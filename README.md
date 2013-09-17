@@ -9,13 +9,14 @@ What it does
 ------------
 ```
 Usage: ./MKVreleaseHndlr.pl [options]
-Options-v vid1,vid2,...        adding videos
--s script1,script2,...         adding subtitles scripts
--c chaptersFile                adding chapters
--f dir                         adding fonts directory
--b                             specify if it's a blu-ray release
--g group                       specify fansub group to tag in the release name
--h                             display this help
+Options
+-v vid1,vid2,... 	adding videos
+-s script1,script2,... 	adding subtitles scripts
+-c chaptersFile     	adding chapters
+-f dir                  adding fonts directory
+-b                      specify if it's a blu-ray release
+-g group                specify fansub group to tag in the release name
+-h                      display this help
 
 Require 'mktorrent', 'mkvtoolnix' ('mkvmerge' & 'mkvinfo') and String::CRC32.
 https://github.com/parastuffs/MKVreleaseHndlr
