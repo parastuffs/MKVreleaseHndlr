@@ -9,21 +9,22 @@ What it does
 ------------
 ```
 Usage: ./MKVreleaseHndlr.pl [options]
-Options:
--v vid1,vid2,...vid2adding videos
--s script1,script2,...script2adding subtitles scripts
--c chaptersFileadding chapters
--f diradding fonts directory
--bspecify if it's a blu-ray release
--g groupspecify fansub group to tag in the release name
--hdisplay this help
+Options-v vid1,vid2,...        adding videos
+-s script1,script2,...         adding subtitles scripts
+-c chaptersFile                adding chapters
+-f dir                         adding fonts directory
+-b                             specify if it's a blu-ray release
+-g group                       specify fansub group to tag in the release name
+-h                             display this help
 
 Require 'mktorrent', 'mkvtoolnix' ('mkvmerge' & 'mkvinfo') and String::CRC32.
 https://github.com/parastuffs/MKVreleaseHndlr
 ```
 
-The script will produce an mkv video following this patern: [group]_show_-_episode_bluray_definition_bitDepth_[CRC32].mkv.
-
+The script will produce an mkv video following this patern: 
+```
+[group]_show_-_episode_bluray_definition_bitDepth_[CRC32].mkv.
+```
 The files will then be passed to mktorrent in order to create one torrent per 
 file that will be copied to /srv/ftp/, being the local directory of the FTP server hosted on the machine.
 
