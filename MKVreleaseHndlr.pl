@@ -27,6 +27,7 @@ sub display_help {
 	$s = $s."-g group\t\tspecify fansub group to tag in the release name\n";
 	$s = $s."-h\t\t\tdisplay this help\n";
 	$s = $s."\nRequire 'mktorrent', 'mkvtoolnix' ('mkvmerge' & 'mkvinfo') and String::CRC32.\n";
+	$s = $s."https://github.com/parastuffs/MKVreleaseHndlr\n";
 	print $s;
 	exit;
 }
@@ -153,17 +154,8 @@ sub format_recognition {
 		$bit =~ s/\t\r\n\f\e//g;
 		chop($bit);#removing the line ending (last character) due to the shell input
 	}
-	print "res and bit : $res $bit thats'it\n";
 
 	return ($res, $bit);
-}
-
-sub computeCRC {
-	my ($file) = @_;
-	open(FD,$file);#check if $file is present
-	my $crc = crc32(*FD);
-	close(FD);
-	return $crc;
 }
 
 sub mux {
@@ -192,8 +184,6 @@ sub mux {
 	my $releaseBaseName = "\[$group\] $anime - $episode $bluray $res $bit \[CRCSUMHERE\].mkv";
 	$releaseBaseName =~ s/ +/_/g;
 
-	print "\$releaseBaseName = '$releaseBaseName'\n";
-
 	open(FD1,"mkvmerge -o \"$releaseBaseName\" --language 0:jpn --language 1:jpn $video $subtitlesTracks $chapters $attachments |");
 	while(defined(my $l = <FD1>)) {
 		print $l;
@@ -201,14 +191,11 @@ sub mux {
 	close(FD1);
 
 	my $releaseName = $releaseBaseName;
-	print "\$releaseName = $releaseName\n";
 	open(FD,$releaseName);
 	my $crc = crc32(*FD);
 	close(FD);
 	$crc = uc sprintf('%08x',$crc);
-#	print "crc: $crc\n";
 	$releaseName =~ s/CRCSUMHERE/$crc/;
-#	print "\$releaseName = '$releaseName'";
 
 	rename("$releaseBaseName","$releaseName");
 
@@ -217,13 +204,9 @@ sub mux {
 
 sub makeTorrent {
 	my ($file) = @_;
-	print "\@_ : @_\n";
-	print "\$file: $file\n";
 	$file =~ m/(.+)(\.mkv)/;
-	print "base \$1: $1\n";
 	my $baseName = "";
 	$baseName = $1;
-	print "$baseName\n";
 	open(FD1,"mktorrent -v -a udp://tracker.openbitorrent.com:80/announce,udp://open.nyaatorrents.info:6544/announce,udp://tracker.publicbt.com:80/announce,http://open.nyaatorrents.info:6544/announce -o \"$baseName.torrent\" \"$file\" |");
 	while(defined(my $l = <FD1>)) {
 		print $l;
@@ -237,10 +220,7 @@ sub makeTorrent {
 	}
 }
 
-
-
 parse_arguments(@ARGV);
-
 $anime = anime_recognition($videos[0]);
 $episode = episode_recognition($videos[0]);
 for (my $i=0;$i<@videos;$i++) {
@@ -257,8 +237,6 @@ for (my $i=0;$i<@videos;$i++) {
 
 
 ##Needed features:
-#Argument pour une version Blu-ray -b
 #Pour l'argument des videos, choisir de pourvoir faire par exemple : "-v video1,video2" ou "-v *.mkv"
 #Pareil pour les scripts avec *.ass
-#Trackers sous forme d'une liste, possibilité de les tirer d'un fichier
 ##
