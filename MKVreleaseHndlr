@@ -1,0 +1,264 @@
+#!/usr/bin/env perl
+use strict;
+use warnings;
+#use diagnostics;
+use String::CRC32;
+use File::Copy;
+
+die("Usage: $0 -h\nThis will display the help screen.\n")
+	if( !defined( $ARGV[0] ) );#where 1 is the last argument expected
+
+#variables for parsing
+my (@fonts, @videos, @scripts, $chapters, $group, $bluray);
+#others
+my $episode = "";
+my $anime = "";
+my $res = "";
+my $bit = "";
+my @release;
+my $localFTP = "/srv/ftp/";
+sub display_help {
+	my $s = "Usage: $0 [options]\nOptions:\n"; 
+	$s = $s."-v vid1,vid2,...\tadding videos\n";
+	$s = $s."-s script1,script2,...\tadding subtitles scripts\n";
+	$s = $s."-c chaptersFile\t\tadding chapters\n";
+	$s = $s."-f dir\t\t\tadding fonts directory\n";
+	$s = $s."-b\t\t\tspecify if it's a blu-ray release\n";
+	$s = $s."-g group\t\tspecify fansub group to tag in the release name\n";
+	$s = $s."-h\t\t\tdisplay this help\n";
+	$s = $s."\nRequire 'mktorrent', 'mkvtoolnix' ('mkvmerge' & 'mkvinfo') and String::CRC32.\n";
+	print $s;
+	exit;
+}
+
+sub parse_arguments {
+	my (@args) = @_;
+	my $fontDir = "fonts";
+
+	while (defined($args[-1])) {
+#Subtitles
+		if (defined($args[-2]) && $args[-2] eq "-s") {
+			@scripts = split(/,/,pop(@args));
+			pop(@args);
+		}
+#Videos
+		elsif (defined($args[-2]) && $args[-2] eq "-v") {
+			@videos = split(/,/,pop(@args));
+			pop(@args);
+		}
+#Chapters
+		elsif (defined($args[-2]) && $args[-2] eq "-c") {
+			$chapters = pop(@args);
+			pop(@args);
+		}
+#Fonts
+		elsif (defined($args[-2]) && $args[-2] eq "-f") {
+			my $fontArch = pop(@args);
+			#Inflation
+			if ($fontArch =~ /\.zip$/) {
+				open(FD1, "unzip -d$fontDir $fontArch |");
+				while(defined(my $l=<FD1>)) {
+					print $l;
+				}
+				close(FD1);
+			}
+			#Get the fonts name in a list
+			open(FD1, "ls $fontDir/ |");
+			@fonts = <FD1>;
+			foreach my $n (@fonts) {
+				$n =~ s/\n//;
+				$n = "$fontDir/$n";
+			}
+			close(FD1);
+			pop(@args);
+		}
+#Blu-Ray
+		elsif ($args[-1] eq "-b") {
+			$bluray = 1;
+			pop(@args);
+		}
+#Fansub group
+		elsif (defined($args[-2]) && $args[-2] eq "-g") {
+			$group = pop(@args);
+			pop(@args);
+		}
+#Help
+		elsif ($args[-1] eq "-h") {
+			pop(@args);
+			display_help;
+		}
+		else {
+			print "None of the expected arguments has occured.\nPlease consult $0 -h to get help.\n";
+			exit;
+		}
+	}
+}
+
+#The following should come from an external file
+sub anime_recognition {
+	my ($video) = @_;
+	if ($video =~ m/[Dd]angan/) {
+		return "Danganronpa_The_Animation";
+	}
+	elsif ($video =~ m/[Pp]sycho/) {
+		return "Psycho-Pass";
+	}
+	else {
+		print "The name of the show wasn't recognized based on the video name.\nPlease enter it below as it should appear on the release name (ex: Danganronpa_The_Animation): ";
+		my $in = <STDIN>;
+		chop($in);
+		return $in;
+	}
+}
+
+sub episode_recognition {
+	my ($video) = @_;
+	if ($video =~ m/([\d][\d][\d]?)/) {
+		return $1;;
+	}
+	else {
+		print "Couldn't get a number out of the video provided.\nPlease enter the episode number: ";
+		my $in = <STDIN>;
+		chop($in);
+		return $in;
+	}
+}
+
+sub format_recognition {
+	my ($video) = @_;
+	my ($res, $bit);
+	open(FD1,"mkvinfo $video |");
+	while(defined(my $l = <FD1>)) {
+		if($l =~ m/Pixel height/) {
+			$l =~ m/(: )(.+)/;
+			$res = $2."p";
+		}
+	}
+	if(!defined($res)) {
+		print "The video definition couldn't be guessed out of the video provided.\nPlease enter it (720p or 1080p): ";
+		$res = <STDIN>;
+		$res =~ s/\t\r\n\f//g;
+		chop($res);
+	}
+
+	if ($video =~ m/hi10|10b/) {
+		$bit = "10bit";
+	}
+	elsif ($video =~ m/[^\d^W^\[]HD|8b/) {
+		$bit = "8bit";
+	}
+	else {
+		print "The bit depth couldn't be guessed, please enter it (8bit ou 10bit): ";
+		$bit = <STDIN>;
+		$bit =~ s/\t\r\n\f\e//g;
+		chop($bit);#removing the line ending (last character) due to the shell input
+	}
+	print "res and bit : $res $bit thats'it\n";
+
+	return ($res, $bit);
+}
+
+sub computeCRC {
+	my ($file) = @_;
+	open(FD,$file);#check if $file is present
+	my $crc = crc32(*FD);
+	close(FD);
+	return $crc;
+}
+
+sub mux {
+	my ($video, $refScripts, $chapters, $refFonts, $anime, $episode, $group, $bluray) = @_;
+	my @fonts = @$refFonts;
+	my @scripts = @$refScripts;
+	my ($res, $bit) = format_recognition($video);
+	
+	foreach my $f (@fonts) {
+		$f = " --attach-file $f ";
+	}
+	my $attachments = join(" ",@fonts);
+	foreach my $s (@scripts) {
+		$s = " --language 0:fre --default-track 0 $s ";
+	}
+	my $subtitlesTracks = join(" ",@scripts);#Need to add a description to the track related to the type of track
+	$chapters = " --chapter-charset latin1 --chapter-language fre --chapters $chapters";
+
+	if(defined($bluray)) {
+		$bluray = "BD";
+	}
+	else {
+		$bluray = "";
+	}
+
+	my $releaseBaseName = "\[$group\] $anime - $episode $bluray $res $bit \[CRCSUMHERE\].mkv";
+	$releaseBaseName =~ s/ +/_/g;
+
+	print "\$releaseBaseName = '$releaseBaseName'\n";
+
+	open(FD1,"mkvmerge -o \"$releaseBaseName\" --language 0:jpn --language 1:jpn $video $subtitlesTracks $chapters $attachments |");
+	while(defined(my $l = <FD1>)) {
+		print $l;
+	}
+	close(FD1);
+
+	my $releaseName = $releaseBaseName;
+	print "\$releaseName = $releaseName\n";
+	open(FD,$releaseName);
+	my $crc = crc32(*FD);
+	close(FD);
+	$crc = uc sprintf('%08x',$crc);
+#	print "crc: $crc\n";
+	$releaseName =~ s/CRCSUMHERE/$crc/;
+#	print "\$releaseName = '$releaseName'";
+
+	rename("$releaseBaseName","$releaseName");
+
+	return $releaseName;
+}
+
+sub makeTorrent {
+	my ($file) = @_;
+	print "\@_ : @_\n";
+	print "\$file: $file\n";
+	$file =~ m/(.+)(\.mkv)/;
+	print "base \$1: $1\n";
+	my $baseName = "";
+	$baseName = $1;
+	print "$baseName\n";
+	open(FD1,"mktorrent -v -a udp://tracker.openbitorrent.com:80/announce,udp://open.nyaatorrents.info:6544/announce,udp://tracker.publicbt.com:80/announce,http://open.nyaatorrents.info:6544/announce -o \"$baseName.torrent\" \"$file\" |");
+	while(defined(my $l = <FD1>)) {
+		print $l;
+	}
+	close(FD1);
+
+	if(defined($localFTP)) {
+		open(FD1,"cp *.torrent $localFTP |");
+		print <FD1>;
+		close(FD1);
+	}
+}
+
+
+
+parse_arguments(@ARGV);
+
+$anime = anime_recognition($videos[0]);
+$episode = episode_recognition($videos[0]);
+for (my $i=0;$i<@videos;$i++) {
+	$release[$i] = mux($videos[$i], \@scripts, $chapters, \@fonts, $anime, $episode, $group, $bluray);
+	makeTorrent($release[$i]);
+}
+
+
+##TODO
+#Add more details on what's going on and the various variables set.
+#Maybe add a 'verbose' mode.
+#Take the trackers from a file, or at least a list.
+##
+
+
+##Needed features:
+#Argument pour une version Blu-ray -b
+#Pour l'argument des videos, choisir de pourvoir faire par exemple : "-v video1,video2" ou "-v *.mkv"
+#Pareil pour les scripts avec *.ass
+#Trackers sous forme d'une liste, possibilité de les tirer d'un fichier
+##
