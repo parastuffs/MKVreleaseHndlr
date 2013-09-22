@@ -101,7 +101,7 @@ sub anime_recognition {
 	if ($video =~ m/[Dd]angan/) {
 		return "Danganronpa_The_Animation";
 	}
-	elsif ($video =~ m/[Pp]sycho/) {
+	elsif ($video =~ m/[Pp]sycho|pp[\d]/) {
 		return "Psycho-Pass";
 	}
 	else {
@@ -130,12 +130,13 @@ sub format_recognition {
 	my ($res, $bit);
 	open(FD1,"mkvinfo $video |");
 	while(defined(my $l = <FD1>)) {
-		if($l =~ m/Pixel height/) {
+		if($l =~ m/Pixel height|Hauteur \(pixels\)/) {
 			$l =~ m/(: )(.+)/;
 			$res = $2."p";
 		}
 	}
 	if(!defined($res)) {
+		print "Video: '$video'\n";
 		print "The video definition couldn't be guessed out of the video provided.\nPlease enter it (720p or 1080p): ";
 		$res = <STDIN>;
 		$res =~ s/\t\r\n\f//g;
@@ -181,8 +182,10 @@ sub mux {
 		$bluray = "";
 	}
 
-	my $releaseBaseName = "\[$group\] $anime - $episode $bluray $res $bit \[CRCSUMHERE\].mkv";
+	my $releaseBaseName = "\[$group\] $anime - $episode $res $bluray $bit \[CRCSUMHERE\].mkv";
 	$releaseBaseName =~ s/ +/_/g;
+
+	print "A quick update: the name of the release being processed is '$releaseBaseName'\n";
 
 	open(FD1,"mkvmerge -o \"$releaseBaseName\" --language 0:jpn --language 1:jpn $video $subtitlesTracks $chapters $attachments |");
 	while(defined(my $l = <FD1>)) {
