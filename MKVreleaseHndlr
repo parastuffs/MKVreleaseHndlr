@@ -16,7 +16,8 @@ my $anime = "";
 my $res = "";
 my $bit = "";
 my @release;
-my $localFTP = "/srv/ftp/";
+my $LOCAL_FTP = "/srv/ftp/";
+my @TRACKER_LIST = ("udp://tracker.openbitorrent.com:80/announce","udp://open.nyaatorrents.info:6544/announce","udp://tracker.publicbt.com:80/announce","http://open.nyaatorrents.info:6544/announce");
 sub display_help {
 	my $s = "Usage: $0 [options]\nOptions:\n"; 
 	$s = $s."-v vid1,vid2,...\tadding videos\n";
@@ -44,8 +45,17 @@ sub parse_arguments {
 		}
 #Videos
 		elsif (defined($args[-2]) && $args[-2] eq "-v") {
-			@videos = split(/,/,pop(@args));
+			if($args[-1] =~ m/^\*/) {
+				open(FD1,"ls $args[-1] |");
+				@videos = <FD1>;
+				close(FD1);
+				pop(@args);
+			}
+			else {
+				@videos = split(/,/,pop(@args));
+			}
 			pop(@args);
+			print @videos;
 		}
 #Chapters
 		elsif (defined($args[-2]) && $args[-2] eq "-c") {
@@ -207,19 +217,22 @@ sub mux {
 
 sub makeTorrent {
 	my ($file) = @_;
-	$file =~ m/(.+)(\.mkv)/;
-	my $baseName = "";
-	$baseName = $1;
-	open(FD1,"mktorrent -v -a udp://tracker.openbitorrent.com:80/announce,udp://open.nyaatorrents.info:6544/announce,udp://tracker.publicbt.com:80/announce,http://open.nyaatorrents.info:6544/announce -o \"$baseName.torrent\" \"$file\" |");
-	while(defined(my $l = <FD1>)) {
-		print $l;
-	}
-	close(FD1);
-
-	if(defined($localFTP)) {
-		open(FD1,"cp *.torrent $localFTP |");
-		print <FD1>;
+	if($file =~ m/\.mkv$/) {
+		$file =~ m/(.+)(\.mkv)/;
+		my $torrentName = "$1.torrent";
+		my $trackers = join(",",@TRACKER_LIST);
+		open(FD1,"mktorrent -v -a $trackers -o \"$torrentName\" \"$file\" |");
+		while(defined(my $l = <FD1>)) {
+			print $l;
+		}
 		close(FD1);
+	
+		if(defined($LOCAL_FTP) && $LOCAL_FTP ne "") {
+			copy("$torrentName","$LOCAL_FTP");
+		}
+	}
+	else {
+		die "Error: The file provided to the torrent function is not an mkv video.\n"
 	}
 }
 
