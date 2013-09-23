@@ -40,7 +40,18 @@ sub parse_arguments {
 	while (defined($args[-1])) {
 #Subtitles
 		if (defined($args[-2]) && $args[-2] eq "-s") {
-			@scripts = split(/,/,pop(@args));
+			if($args[-1] =~ m/^\*/) {
+				open(FD1,"ls $args[-1] |");
+				@scripts = <FD1>;
+				close(FD1);
+				pop(@args);
+				foreach my $l (@scripts) {
+					chomp $l;
+				}
+			}
+			else {
+				@scripts = split(/,/,pop(@args));
+			}
 			pop(@args);
 		}
 #Videos
@@ -50,12 +61,14 @@ sub parse_arguments {
 				@videos = <FD1>;
 				close(FD1);
 				pop(@args);
+				foreach my $l (@videos) {
+					chomp $l;
+				}
 			}
 			else {
 				@videos = split(/,/,pop(@args));
 			}
 			pop(@args);
-			print @videos;
 		}
 #Chapters
 		elsif (defined($args[-2]) && $args[-2] eq "-c") {
@@ -237,6 +250,7 @@ sub makeTorrent {
 }
 
 parse_arguments(@ARGV);
+exit;
 $anime = anime_recognition($videos[0]);
 $episode = episode_recognition($videos[0]);
 for (my $i=0;$i<@videos;$i++) {
@@ -248,11 +262,4 @@ for (my $i=0;$i<@videos;$i++) {
 ##TODO
 #Add more details on what's going on and the various variables set.
 #Maybe add a 'verbose' mode.
-#Take the trackers from a file, or at least a list.
-##
-
-
-##Needed features:
-#Pour l'argument des videos, choisir de pourvoir faire par exemple : "-v video1,video2" ou "-v *.mkv"
-#Pareil pour les scripts avec *.ass
 ##
