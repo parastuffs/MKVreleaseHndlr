@@ -250,7 +250,6 @@ sub makeTorrent {
 }
 
 parse_arguments(@ARGV);
-exit;
 $anime = anime_recognition($videos[0]);
 $episode = episode_recognition($videos[0]);
 for (my $i=0;$i<@videos;$i++) {
