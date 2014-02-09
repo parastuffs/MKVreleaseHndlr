@@ -90,8 +90,9 @@ sub parse_arguments {
 			open(FD1, "ls $fontDir/ |");
 			@fonts = <FD1>;
 			foreach my $n (@fonts) {
+				print $n;
 				$n =~ s/\n//;
-				$n = "$fontDir/$n";
+				$n = "$fontDir/\"$n\"";#quotes to cirumvent problems with spaces
 			}
 			close(FD1);
 			pop(@args);
@@ -126,6 +127,9 @@ sub anime_recognition {
 	}
 	elsif ($video =~ m/[Pp]sycho|pp[\d]/) {
 		return "Psycho-Pass";
+	}
+	elsif ($video =~ m/[Nn]ichijou/) {
+		return "Nichijou"
 	}
 	else {
 		print "The name of the show wasn't recognized based on the video name.\nPlease enter it below as it should appear on the release name (ex: Danganronpa_The_Animation): ";
@@ -169,7 +173,7 @@ sub format_recognition {
 	if ($video =~ m/hi10|10b/) {
 		$bit = "10bit";
 	}
-	elsif ($video =~ m/[^\d^W^\[]HD|8b/) {
+	elsif ($video =~ m/[^\d^W^\[]HD|8b|hd/) {
 		$bit = "8bit";
 	}
 	else {
@@ -196,7 +200,13 @@ sub mux {
 		$s = " --language 0:fre --default-track 0 $s ";
 	}
 	my $subtitlesTracks = join(" ",@scripts);#Need to add a description to the track related to the type of track
-	$chapters = " --chapter-charset latin1 --chapter-language fre --chapters $chapters";
+
+	if(defined($chapters)) {
+		$chapters = " --chapter-charset latin1 --chapter-language fre --chapters $chapters";
+	}
+	else {
+		$chapters = "";
+	}
 
 	if(defined($bluray)) {
 		$bluray = "BD";
