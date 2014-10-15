@@ -16,6 +16,7 @@ Options
 -f dir                  adding fonts directory
 -b                      specify if it's a blu-ray release
 -g group                specify fansub group to tag in the release name
+--season                Season of the show; will be appended right after the show name
 -h                      display this help
 
 Require 'mktorrent', 'mkvtoolnix' ('mkvmerge' & 'mkvinfo') and String::CRC32.
@@ -24,7 +25,7 @@ https://github.com/parastuffs/MKVreleaseHndlr
 
 The script will produce an mkv video following this patern: 
 ```
-[group]_show_-_episode_bluray_definition_bitDepth_[CRC32].mkv.
+[group]_show_season_-_episode_bluray_definition_bitDepth_[CRC32].mkv.
 ```
 The files will then be passed to mktorrent in order to create one torrent per 
 file that will be copied to /srv/ftp/, being the local directory of the FTP server hosted on the machine.
