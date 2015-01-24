@@ -138,7 +138,7 @@ sub anime_recognition {
 	elsif ($video =~ m/[Nn]ichijou/) {
 		return "Nichijou"
 	}
-	elsif ($video =~ m/[Dd]eath[_- ][Pp]arade/) {
+	elsif ($video =~ m/[Dd]eath[_\- ][Pp]arade/) {
 		return "Death_Parade";
 	}
 	else {
@@ -212,7 +212,7 @@ sub mux {
 	my $subtitlesTracks = join(" ",@scripts);#Need to add a description to the track related to the type of track
 
 	if(defined($chapters)) {
-		$chapters = " --chapter-charset latin1 --chapter-language fre --chapters $chapters";
+		$chapters = " --chapter-charset utf8 --chapter-language fre --chapters $chapters";
 	}
 	else {
 		$chapters = "";
