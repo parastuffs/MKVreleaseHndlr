@@ -141,6 +141,9 @@ sub anime_recognition {
 	elsif ($video =~ m/[Dd]eath[_\- ][Pp]arade/) {
 		return "Death_Parade";
 	}
+	elsif ($video =~ m/oretachi[i]/) {
+		return "Ore-tachi_ni_Tsubasa_wa_Nai";
+	}
 	else {
 		print "The name of the show wasn't recognized based on the video name.\nPlease enter it below as it should appear on the release name (ex: Danganronpa_The_Animation): ";
 		my $in = <STDIN>;
