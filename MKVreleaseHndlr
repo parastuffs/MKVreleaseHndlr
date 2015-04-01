@@ -144,6 +144,9 @@ sub anime_recognition {
 	elsif ($video =~ m/oretachi[i]/) {
 		return "Ore-tachi_ni_Tsubasa_wa_Nai";
 	}
+	elsif ($video =~ m/[Oo]ne[_\ ][Pp]iece/) {
+		return "One_Piece";
+	}
 	else {
 		print "The name of the show wasn't recognized based on the video name.\nPlease enter it below as it should appear on the release name (ex: Danganronpa_The_Animation): ";
 		my $in = <STDIN>;
