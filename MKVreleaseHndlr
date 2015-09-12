@@ -17,7 +17,7 @@ my $res = "";
 my $bit = "";
 my @release;
 my $LOCAL_FTP = "/srv/ftp/";
-my @TRACKER_LIST = ("udp://open.nyaatorrents.info:6544/announce","http://open.nyaatorrents.info:6544/announce");
+my @TRACKER_LIST = ("http://open.nyaatorrents.info:6544/announce");
 sub display_help {
 	my $s = "Usage: $0 [options]\nOptions:\n"; 
 	$s = $s."-v vid1,vid2,...\tadding videos\n";
